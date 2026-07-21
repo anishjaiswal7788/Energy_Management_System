@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37411.7
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmsApi", "EmsApi\EmsApi\EmsApi.csproj", "{ECD6B656-FD46-E63A-11F2-B6C6806E0C37}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EmsDashboard", "EmsDashboard\EmsDashboard\EmsDashboard.csproj", "{71BBBA02-9F4D-498F-BB04-477F654A9A8A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{ECD6B656-FD46-E63A-11F2-B6C6806E0C37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ECD6B656-FD46-E63A-11F2-B6C6806E0C37}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ECD6B656-FD46-E63A-11F2-B6C6806E0C37}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ECD6B656-FD46-E63A-11F2-B6C6806E0C37}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71BBBA02-9F4D-498F-BB04-477F654A9A8A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71BBBA02-9F4D-498F-BB04-477F654A9A8A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71BBBA02-9F4D-498F-BB04-477F654A9A8A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71BBBA02-9F4D-498F-BB04-477F654A9A8A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9832392B-FECE-43B3-9C8E-AD874F508B9C}
+	EndGlobalSection
+EndGlobal

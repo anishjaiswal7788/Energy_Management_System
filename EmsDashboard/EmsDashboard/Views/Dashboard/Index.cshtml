@@ -1,0 +1,595 @@
+﻿@{
+    ViewData["Title"] = "EMS Specific Power Consumption";
+}
+
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f6f9;
+        margin: 0;
+        padding: 20px;
+        color: #333;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #0056b3;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+        .header h2 {
+            margin: 0;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+            .header h2::before {
+                content: '⚡';
+                margin-right: 10px;
+                color: #ffc107;
+            }
+
+    .selector select {
+        padding: 6px 12px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+        margin-left: 10px;
+        cursor: pointer;
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+    }
+
+    .chart-card {
+        background: white;
+        padding: 15px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #ddd;
+    }
+
+        .chart-card.full-width {
+            grid-column: span 3;
+        }
+
+    .chart-title {
+        font-size: 14px;
+        font-weight: bold;
+        text-align: center;
+        margin-bottom: 15px;
+        color: #555;
+    }
+
+    /* 1. Fix Data Table Height & Scrolling */
+    .data-table-container {
+        background: white;
+        padding: 15px;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border: 1px solid #ddd;
+        margin-top: 15px;
+        max-height: 350px;
+        overflow-y: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+
+    th, td {
+        padding: 10px;
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+        font-size: 13px;
+    }
+
+    th {
+        background-color: #f8f9fa;
+        font-weight: bold;
+        color: #555;
+        position: sticky;
+        top: 0;
+        box-shadow: 0 1px 0 #ddd;
+    }
+
+    tr:hover {
+        background-color: #f1f5f9;
+    }
+
+    /* New Row Highlight Colors */
+    .row-below-lsl {
+        background-color: #fff3cd !important;
+    }
+
+    .row-above-usl {
+        background-color: #f8d7da !important;
+    }
+
+    /* 2. KPI Card Styles */
+    .kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        height: 250px; /* Matches the exact height of the charts next to it */
+        align-content: center; /* Centers the boxes perfectly beneath the title */
+    }
+
+    .kpi-card {
+        background: #f8f9fa;
+        padding: 15px 5px;
+        border-radius: 4px;
+        border: 1px solid #e3e6f0;
+        text-align: center;
+    }
+
+    .kpi-value {
+        font-size: 22px;
+        font-weight: bold;
+        color: #0056b3;
+        margin-top: 5px;
+    }
+
+    .kpi-label {
+        font-size: 11px;
+        color: #6c757d;
+        text-transform: uppercase;
+        font-weight: bold;
+    }
+
+    /* 3. Alert Banner & Button Styles */
+    .alert-banner {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 12px 20px;
+        border-radius: 4px;
+        margin-bottom: 15px;
+        border: 1px solid #f5c6cb;
+        font-weight: bold;
+        display: none;
+    }
+
+    .btn-export {
+        background-color: #1cc88a;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: bold;
+    }
+
+        .btn-export:hover {
+            background-color: #17a673;
+        }
+</style>
+
+<div class="header">
+    <h2>EMS — Power Consumption Dashboard</h2>
+    <div class="selector">
+        <label for="monthSelector"><strong>Select Month: </strong></label>
+        <select id="monthSelector" onchange="updateCharts()">
+            <!-- Options populated by JS -->
+        </select>
+        &nbsp;&nbsp;&nbsp;
+        <label for="idSelector"><strong>Select Meter ID: </strong></label>
+        <select id="idSelector" onchange="updateCharts()">
+            <option value="101">HVAC (101)</option>
+            <option value="102">Lighting (102)</option>
+            <option value="103">Production Line (103)</option>
+            <option value="104">Server Room (104)</option>
+            <option value="105">Auxiliary (105)</option>
+        </select>
+    </div>
+</div>
+
+<div id="statusBanner" class="alert-banner">
+    ⚠️ <strong>ALERT:</strong> The most recent daily reading for this meter is OUT OF SPEC!
+</div>
+
+<div class="dashboard-grid">
+    <!-- 1. Radial Chart -->
+    <div class="chart-card">
+        <div class="chart-title">Latest Daily Consumption (kWh)</div>
+        <div style="position: relative; height: 250px; width: 100%;"><canvas id="radialChart"></canvas></div>
+    </div>
+
+    <!-- 2. KPI Summary Cards (Replaces Daily Chart) -->
+    <div class="chart-card">
+        <div class="chart-title" id="kpiTitle">Monthly Summary</div>
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Total Usage</div>
+                <div class="kpi-value" id="kpiTotal">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Avg Daily Load</div>
+                <div class="kpi-value" id="kpiAvg">0</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Peak Day</div>
+                <div class="kpi-value" id="kpiPeak">-</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Horizontal Comparison Chart -->
+    <div class="chart-card">
+        <div class="chart-title" id="comparisonChartTitle">Comparison All Meters</div>
+        <div style="position: relative; height: 250px; width: 100%;"><canvas id="comparisonChart"></canvas></div>
+    </div>
+
+    <!-- 4. Monthly Vertical Bar Chart -->
+    <div class="chart-card full-width">
+        <div class="chart-title">Monthly Consumption History (kWh)</div>
+        <div style="position: relative; height: 250px; width: 100%;"><canvas id="monthlyChart"></canvas></div>
+    </div>
+
+    <!-- 5. Daily Process Control Chart (LSL / USL) -->
+    <div class="chart-card full-width">
+        <div class="chart-title" id="controlChartTitle">Process Control Chart</div>
+        <div style="position: relative; height: 300px; width: 100%;"><canvas id="controlChart"></canvas></div>
+    </div>
+</div>
+
+<div class="data-table-container">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+        <div class="chart-title" id="tableTitle" style="margin-bottom: 0;">Meter Specifications & Readings</div>
+        <button class="btn-export" onclick="exportToCSV()">📥 Download CSV</button>
+    </div>
+    <table id="masterDataTable">
+        <thead>
+            <tr>
+                <th>Tag ID</th>
+                <th>Tag Name</th>
+                <th>Date</th>
+                <th>Value (kWh)</th>
+                <th>LSL</th>
+                <th>USL</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- JavaScript will populate this -->
+        </tbody>
+    </table>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const rawDailyData = @Html.Raw(ViewBag.DailyData != null ? ViewBag.DailyData : "[]");
+    const rawMonthlyData = @Html.Raw(ViewBag.MonthlyData != null ? ViewBag.MonthlyData : "[]");
+    const rawMasterViewData = @Html.Raw(ViewBag.MasterViewData != null ? ViewBag.MasterViewData : "[]");
+
+    const orangeColor = '#ed7d31';
+    let radialChartInstance, monthlyChartInstance, comparisonChartInstance, controlChartInstance;
+
+    Chart.defaults.scale.grid.color = '#e0e0e0';
+    Chart.defaults.font.size = 11;
+
+    // --- CSV EXPORT ---
+    function exportToCSV() {
+        const table = document.getElementById("masterDataTable");
+        let csvContent = "";
+        for (let i = 0; i < table.rows.length; i++) {
+            let row = [], cols = table.rows[i].querySelectorAll("td, th");
+            for (let j = 0; j < cols.length; j++) {
+                row.push('"' + cols[j].innerText + '"');
+            }
+            csvContent += row.join(",") + "\r\n";
+        }
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "Meter_Data_Export.csv";
+        link.click();
+    }
+
+    // --- POPULATE MONTH DROPDOWN ---
+    function populateMonthSelector() {
+        const monthSelect = document.getElementById('monthSelector');
+        const uniqueMonths = [...new Set(rawMonthlyData.map(item => {
+            const d = new Date(item.entry_Time || item.Entry_Time || item.entry_time);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }))].sort().reverse();
+
+        uniqueMonths.forEach(monthVal => {
+            const [year, month] = monthVal.split('-');
+            const dateObj = new Date(year, month - 1, 1);
+            const label = dateObj.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' });
+            monthSelect.add(new Option(label, monthVal));
+        });
+    }
+
+    // --- RENDER TABLE & BANNER ---
+    function renderTable(id, targetYear, targetMonthIndex) {
+        const tbody = document.querySelector('#masterDataTable tbody');
+        tbody.innerHTML = '';
+
+        const displayMonthLabel = new Date(targetYear, targetMonthIndex, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+        document.getElementById('tableTitle').innerText = `Meter Specifications & Readings (${displayMonthLabel})`;
+
+        const currentMonthViewData = rawMasterViewData.filter(row => {
+            const rowTime = row.entry_Time || row.Entry_Time || row.entry_time;
+            const rowTagId = row.tagId || row.TagId || row.tag_id;
+            if (!rowTime) return false;
+            const d = new Date(rowTime);
+            return rowTagId == id && d.getMonth() === targetMonthIndex && d.getFullYear() === targetYear;
+        });
+
+        // Banner Logic
+        const banner = document.getElementById('statusBanner');
+        if (currentMonthViewData.length > 0) {
+            const latestRecord = currentMonthViewData[currentMonthViewData.length - 1];
+            const val = latestRecord.value || latestRecord.Value;
+            const usl = latestRecord.usl || latestRecord.Usl;
+            const lsl = latestRecord.lsl || latestRecord.Lsl;
+
+            if (val > usl || val < lsl) {
+                banner.style.display = "block";
+            } else {
+                banner.style.display = "none";
+            }
+        } else {
+            banner.style.display = "none";
+        }
+
+        // Table Rows
+        currentMonthViewData.forEach(row => {
+            const tr = document.createElement('tr');
+
+            const rowTagId = row.tagId || row.TagId || row.tag_id;
+            const rowTagName = row.tagName || row.TagName || row.tag_name;
+            const rowTime = row.entry_Time || row.Entry_Time || row.entry_time;
+            const rowLsl = row.lsl || row.Lsl;
+            const rowUsl = row.usl || row.Usl;
+            const rowValue = row.value || row.Value;
+
+            const d = new Date(rowTime).toLocaleDateString('en-GB');
+
+            let status = "Normal";
+            let rowClass = "";
+
+            if (rowValue < rowLsl) {
+                status = "Below LSL";
+                rowClass = "row-below-lsl";
+            } else if (rowValue > rowUsl) {
+                status = "Above USL";
+                rowClass = "row-above-usl";
+            }
+
+            if (rowClass !== "") {
+                tr.className = rowClass;
+            }
+
+            tr.innerHTML = `
+                <td>${rowTagId}</td>
+                <td>${rowTagName}</td>
+                <td>${d}</td>
+                <td>${rowValue.toFixed(2)}</td>
+                <td>${rowLsl}</td>
+                <td>${rowUsl}</td>
+                <td>${status}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    // --- RENDER ALL DASHBOARD COMPONENTS ---
+    // --- RENDER ALL DASHBOARD COMPONENTS ---
+    function renderCharts(id) {
+        if (radialChartInstance) radialChartInstance.destroy();
+        if (monthlyChartInstance) monthlyChartInstance.destroy();
+        if (comparisonChartInstance) comparisonChartInstance.destroy();
+        if (controlChartInstance) controlChartInstance.destroy();
+
+        const selectedMonthVal = document.getElementById('monthSelector').value;
+        let targetYear = new Date().getFullYear();
+        let targetMonthIndex = new Date().getMonth();
+
+        if (selectedMonthVal) {
+            const parts = selectedMonthVal.split('-');
+            targetYear = parseInt(parts[0]);
+            targetMonthIndex = parseInt(parts[1]) - 1;
+        }
+
+        const displayMonthLabel = new Date(targetYear, targetMonthIndex, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+        renderTable(id, targetYear, targetMonthIndex);
+
+        const idDailyData = rawDailyData.filter(row => row.id == id).sort((a, b) => new Date(a.entry_Time || a.Entry_Time) - new Date(b.entry_Time || b.Entry_Time));
+        const idMonthlyData = rawMonthlyData.filter(row => row.id == id).sort((a, b) => new Date(a.entry_Time || a.Entry_Time) - new Date(b.entry_Time || b.Entry_Time));
+
+        const latestDailyRecord = idDailyData.length > 0 ? idDailyData[idDailyData.length - 1] : null;
+
+        const currentMonthDaily = idDailyData.filter(row => {
+            const d = new Date(row.entry_Time || row.Entry_Time || row.entry_time);
+            return d.getMonth() === targetMonthIndex && d.getFullYear() === targetYear;
+        });
+
+        const selectedMonthTotals = [101, 102, 103, 104, 105].map(meterId => {
+            const record = rawMonthlyData.find(r =>
+                r.id == meterId &&
+                new Date(r.entry_Time || r.Entry_Time || r.entry_time).getMonth() === targetMonthIndex &&
+                new Date(r.entry_Time || r.Entry_Time || r.entry_time).getFullYear() === targetYear
+            );
+            return record ? (record.value || record.Value) : 0;
+        });
+
+        document.getElementById('comparisonChartTitle').innerText = `Comparison All Meters (${displayMonthLabel})`;
+        document.getElementById('kpiTitle').innerText = `Monthly Summary (${displayMonthLabel})`;
+
+        // 1. KPIs (Now with units)
+        if (currentMonthDaily.length > 0) {
+            const total = currentMonthDaily.reduce((sum, row) => sum + (row.value || row.Value), 0);
+            const avg = total / currentMonthDaily.length;
+
+            let maxVal = -1;
+            let peakDate = "-";
+            currentMonthDaily.forEach(row => {
+                const val = row.value || row.Value;
+                if (val > maxVal) {
+                    maxVal = val;
+                    peakDate = new Date(row.entry_Time || row.Entry_Time || row.entry_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+                }
+            });
+
+            document.getElementById('kpiTotal').innerText = total.toFixed(1) + " kWh";
+            document.getElementById('kpiAvg').innerText = avg.toFixed(1) + " kWh";
+            document.getElementById('kpiPeak').innerText = peakDate;
+        } else {
+            document.getElementById('kpiTotal').innerText = "0 kWh";
+            document.getElementById('kpiAvg').innerText = "0 kWh";
+            document.getElementById('kpiPeak').innerText = "-";
+        }
+
+        // 2. Radial Chart (Now includes kWh in the center text)
+        // 2. Radial Chart (Now centered and responsive)
+        const radialCtx = document.getElementById('radialChart').getContext('2d');
+        const latestVal = latestDailyRecord ? (latestDailyRecord.value || latestDailyRecord.Value) : 0;
+        const maxVal = idDailyData.length > 0 ? Math.max(...idDailyData.map(row => row.value || row.Value)) * 1.2 : 100;
+        const remainingVal = maxVal > latestVal ? maxVal - latestVal : 0;
+
+        radialChartInstance = new Chart(radialCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Consumption', 'Remaining Capacity'],
+                datasets: [{ data: [latestVal, remainingVal], backgroundColor: ['#2ca02c', '#e0e0e0'], borderWidth: 0 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // Forces chart to obey the div container
+                layout: { padding: 20 }, // Gives it some breathing room
+                cutout: '75%', // Makes the ring slightly thinner and more elegant
+                circumference: 360,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } }
+            },
+            plugins: [{
+                id: 'textCenter',
+                beforeDraw: function (chart) {
+                    var width = chart.width, height = chart.height, ctx = chart.ctx;
+                    ctx.restore();
+                    ctx.font = "bold 20px sans-serif";
+                    ctx.textBaseline = "middle";
+                    ctx.fillStyle = "#333";
+                    var text = latestVal.toFixed(1) + " kWh",
+                        textX = Math.round((width - ctx.measureText(text).width) / 2),
+                        textY = height / 2;
+                    ctx.fillText(text, textX, textY);
+                    ctx.save();
+                }
+            }]
+        });
+
+        // 3. Horizontal Comparison Chart (Now with Axis Labels)
+        const comparisonCtx = document.getElementById('comparisonChart').getContext('2d');
+        comparisonChartInstance = new Chart(comparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: ['HVAC', 'Lighting', 'Production Line', 'Server Room', 'Auxiliary'],
+                datasets: [{
+                    data: selectedMonthTotals,
+                    // Changed the 5th color from red (#e74a3b) to purple (#6f42c1)
+                    backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#6f42c1'],
+                    barThickness: 20
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Energy Consumption (kWh)', font: { weight: 'bold' } } },
+                    y: { title: { display: true, text: 'Meter', font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+        // 4. Monthly Vertical Bar Chart (Now with Axis Labels)
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        monthlyChartInstance = new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: idMonthlyData.map(row => new Date(row.entry_Time || row.Entry_Time || row.entry_time).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })),
+                datasets: [{ data: idMonthlyData.map(row => row.value || row.Value), backgroundColor: orangeColor, barThickness: 25 }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { title: { display: true, text: 'Month', font: { weight: 'bold' } } },
+                    y: { title: { display: true, text: 'Total Consumption (kWh)', font: { weight: 'bold' } } }
+                }
+            }
+        });
+
+        // 5. Process Control Chart (Now with Axis Labels)
+        const masterRecord = rawMasterViewData.find(row => (row.tagId || row.TagId || row.tag_id) == id);
+        const lslValue = masterRecord ? (masterRecord.lsl || masterRecord.Lsl) : 0;
+        const uslValue = masterRecord ? (masterRecord.usl || masterRecord.Usl) : 0;
+
+        const labelsArray = currentMonthDaily.map(row => new Date(row.entry_Time || row.Entry_Time || row.entry_time).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }));
+        const lslDataLine = labelsArray.map(() => lslValue);
+        const uslDataLine = labelsArray.map(() => uslValue);
+        const consumptionDataLine = currentMonthDaily.map(row => row.value || row.Value);
+
+        document.getElementById('controlChartTitle').innerText = `Process Control Chart (${displayMonthLabel})`;
+
+        const controlCtx = document.getElementById('controlChart').getContext('2d');
+        controlChartInstance = new Chart(controlCtx, {
+            type: 'line',
+            data: {
+                labels: labelsArray,
+                datasets: [
+                    { label: 'Daily Consumption', data: consumptionDataLine, borderColor: orangeColor, backgroundColor: '#fff', pointRadius: 4, borderWidth: 2.5, fill: false, tension: 0 },
+                    { label: `USL (${uslValue})`, data: uslDataLine, borderColor: 'rgba(220, 53, 69, 0.7)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false },
+                    { label: `LSL (${lslValue})`, data: lslDataLine, borderColor: 'rgba(255, 193, 7, 0.9)', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false }
+                ]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: { legend: { display: true, position: 'top' } },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Date', font: { weight: 'bold' } }
+                    },
+                    y: {
+                        suggestedMin: lslValue * 0.95,
+                        suggestedMax: uslValue * 1.05,
+                        title: { display: true, text: 'Daily Consumption (kWh)', font: { weight: 'bold' } }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateCharts() {
+        const selectedId = document.getElementById('idSelector').value;
+        renderCharts(selectedId);
+    }
+
+    window.onload = () => {
+        if (rawMonthlyData.length > 0) {
+            populateMonthSelector();
+        }
+        if (rawDailyData.length > 0 || rawMonthlyData.length > 0 || rawMasterViewData.length > 0) {
+            updateCharts();
+        }
+    };
+</script>
