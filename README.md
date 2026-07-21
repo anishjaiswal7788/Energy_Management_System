@@ -26,7 +26,7 @@ This project bridges the gap between Operational Technology (OT) and Information
 
 
 
-*Demonstrates the structured querying of relational metadata and time-series telemetry data using Microsoft SQL Server.*
+*Demonstrates the structured querying of relational metadata and time-series telemetry data using Microsoft SQL Server and Google BigQuery.*
 
 ## 🛠️ Technology Stack
 * **Frontend:** ASP.NET Web Application (MVC), HTML/CSS, Bootstrap, JavaScript, Chart.js
