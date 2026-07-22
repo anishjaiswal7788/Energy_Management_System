@@ -16,6 +16,12 @@ This project bridges the gap between Operational Technology (OT) and Information
 
 *Interactive Process Control Chart highlighting Upper/Lower Specification Limits (USL/LSL) and conditional data grids for immediate anomaly flagging.*
 
+### WEB API USING SWAGGER
+<img width="1917" height="964" alt="image" src="https://github.com/user-attachments/assets/dbfd13ad-ba67-4e50-b549-e13e63a394d2" />
+<img width="1904" height="966" alt="image" src="https://github.com/user-attachments/assets/577f55d2-4768-4442-80e7-01391cbfcf2f" />
+
+
+
 ### Database Architecture & Telemetry Ingestion
 ### Microsoft SQL Server
 <img width="670" height="377" alt="image" src="https://github.com/user-attachments/assets/ece84cc2-512f-4cba-93e3-8d43292a3aaa" />
