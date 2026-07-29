@@ -30,6 +30,10 @@ This project bridges the gap between Operational Technology (OT) and Information
 <img width="1919" height="992" alt="image" src="https://github.com/user-attachments/assets/5fc67fd6-356d-4a8a-96bc-0d334a87876d" />
 <img width="1919" height="990" alt="image" src="https://github.com/user-attachments/assets/0db79d08-9872-44e1-b1be-609fe3bfc2ad" />
 
+### Data Studio
+### Link to Data Studio: https://datastudio.google.com/reporting/b039b6ad-ecb0-49ff-a5fc-12cb49dc60e7
+<img width="671" height="539" alt="image" src="https://github.com/user-attachments/assets/db5d8839-88eb-4f09-9f4b-7399dbee52e0" />
+
 
 
 *Demonstrates the structured querying of relational metadata and time-series telemetry data using Microsoft SQL Server and Google BigQuery.*
